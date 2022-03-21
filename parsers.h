@@ -17,6 +17,8 @@
 #define ATTR_NAME "name"
 
 
+#define NODE_IS(node, tag) (!xmlStrcasecmp((node), (xmlChar *)(tag)))
+
 
 #ifndef PARSEGTKXML_PARSERS_H
 #define PARSEGTKXML_PARSERS_H
@@ -39,8 +41,7 @@
  * that are siblings or children of a given xml node.
  */
 static void
-print_element_names(xmlNode * a_node)
-{
+print_element_names(xmlNode *a_node) {
 
     xmlNode *cur_node = NULL;
 
@@ -93,10 +94,10 @@ GObject *macro_TransObjAttrs(xmlNode *node) {
     }
 
 
-    xmlChar *type = xmlGetProp(node, (const xmlChar *)ATTR_CLASS);
+    xmlChar *type = xmlGetProp(node, (const xmlChar *) ATTR_CLASS);
 
     printf("\n object name : %s\n", type);
-    widget = g_object_new(g_type_from_name((const gchar*)type), NULL);
+    widget = g_object_new(g_type_from_name((const gchar *) type), NULL);
 
     /*** TODO :: PARSE THE REST OF ATTRIBUTES IF EXISTS
      xmlAttr *curAttr = node->properties;
@@ -112,13 +113,61 @@ GObject *macro_TransObjAttrs(xmlNode *node) {
 void macro_ApplyObjProp(GObject *object, xmlNode *node) {
     GValue value = G_VALUE_INIT;
 
-    const gchar *property = (gchar *)xmlGetProp(node,(const xmlChar *)ATTR_NAME);
-
-
-    const gchar *content = (gchar *)xmlNodeGetContent(node);
-    g_object_get_property(object,property,&value);
+    //get property name from xml
+    const gchar *property = (gchar *) xmlGetProp(node, (const xmlChar *) ATTR_NAME);
+    //get property value
+    const gchar *content = (gchar *) xmlNodeGetContent(node);
+    //get property default value from object
+    g_object_get_property(object, property, &value);
+    //translate xml value from string to correct value
     macro_valueFromStringType(value.g_type, content, &value);
-    g_object_set_property(object, property,  &value);
+    //set value to the object
+    g_object_set_property(object, property, &value);
+}
+void macro_ApplyObjChildProp(GObject *object, GObject *child, xmlNode *node) {
+    GValue value = G_VALUE_INIT;
+
+    //get property name from xml
+    const gchar *property = (gchar *) xmlGetProp(node, (const xmlChar *) ATTR_NAME);
+    //get property value
+    const gchar *content = (gchar *) xmlNodeGetContent(node);
+    //get property default value from object
+    gtk_container_child_get_property(GTK_CONTAINER(object), GTK_WIDGET(child), property, &value);
+    //translate xml value from string to correct value
+    macro_valueFromStringType(value.g_type, content, &value);
+    //set value to the object
+    gtk_container_child_set_property(GTK_CONTAINER(object), GTK_WIDGET(child), property, &value);
+}
+
+void macro_applyChildProps(GObject *object, GObject *child, xmlNode *node) {
+    xmlNode *curNode;
+    for (curNode = node->children; curNode; curNode = curNode->next) {
+        if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_PROPERTY)) {
+            macro_ApplyObjChildProp(object, child, curNode);
+        }
+    }
+}
+
+void macro_addChild(GObject *object, xmlNode *node) {
+    xmlNode *curNode;
+    GObject *child;
+    //looking for child
+    for (curNode = node->children; curNode; curNode = curNode->next) {
+        if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_OBJECT)) {
+            child = macro_TransObjAttrs(curNode);
+            //looking for child properties
+            for (curNode = node->children; curNode; curNode = curNode->next) {
+                if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_PACKING)) {
+                    macro_applyChildProps(object, child, curNode);
+                    break;
+                }
+            }
+            break;
+        }
+        curNode = curNode->next;
+    }
+
+
 }
 
 void macro_parseChildrenTags(GObject *object, xmlNode *node) {
@@ -128,22 +177,17 @@ void macro_parseChildrenTags(GObject *object, xmlNode *node) {
     xmlNode *curNode = node->children;
     while (curNode) {
         //TODO :: COMPLETE CODE HERE
-        // SET PROPERTY DYNAMICALLY WITHOUT KNOWING THE GTYPE
+        // handle all tags
 
-        if (!xmlStrcasecmp(curNode->name, (xmlChar *)TAG_PROPERTY))
+        if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_PROPERTY))
             macro_ApplyObjProp(object, node);
-        else if (!xmlStrcasecmp(curNode->name, (xmlChar *)TAG_CHILD))
-
-
+        else if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_CHILD))
+            macro_addChild(object, node);
 
         curNode = curNode->next;
     }
 
 }
-
-
-
-
 
 
 GtkWidget *macro_TransWidget(xmlNode *node) {
@@ -170,7 +214,6 @@ GtkWidget *macro_TransWidget(xmlNode *node) {
     widget = macro_TransObjAttrs(curNode);
 
     macro_parseChildrenTags(widget, curNode);
-
 
 
     return GTK_WIDGET(widget);
