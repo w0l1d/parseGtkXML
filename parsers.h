@@ -132,7 +132,7 @@ void macro_parseChildrenTags(GObject *object, xmlNode *node) {
 
         if (!xmlStrcasecmp(curNode->name, (xmlChar *)TAG_PROPERTY))
             macro_ApplyObjProp(object, node);
-        else if (!xmlStrcasecmp(curNode->name, (xmlChar *)TAGCH))
+        else if (!xmlStrcasecmp(curNode->name, (xmlChar *)TAG_CHILD))
 
 
 
