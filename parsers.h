@@ -11,10 +11,15 @@
 #define TAG_OBJECT "object"
 #define TAG_PROPERTY "property"
 #define TAG_CHILD "child"
+#define TAG_ITEMS "items"
 #define TAG_PACKING "packing"
 
 #define ATTR_CLASS "class"
+#define ATTR_ID "id"
 #define ATTR_NAME "name"
+#define ATTR_TYPE "type"
+#define ATTR_TYPE_SUBMENU "submenu"
+#define ATTR_PROPERTY_GROUP "group"
 
 
 #define NODE_IS(node, tag) (!xmlStrcasecmp((node), (xmlChar *)(tag)))
@@ -24,8 +29,7 @@
 #define PARSEGTKXML_PARSERS_H
 
 
-
-GtkWidget *macro_TransWidget(xmlNode *node);
+GObject *macro_TransWidget(MyInterface *inteface, xmlNode *node);
 
 
 /*
@@ -83,7 +87,7 @@ void macro_cleanupXML(xmlDoc *doc) {
     xmlCleanupParser();
 }
 
-GObject *macro_TransObjAttrs(xmlNode *node) {
+GObject *macro_TransObjAttrs(MyInterface *inteface, xmlNode *node) {
     GObject *widget;
 
 
@@ -107,16 +111,25 @@ GObject *macro_TransObjAttrs(xmlNode *node) {
     g_assert(widget != NULL);
     /// TODO :: PARSE THE REST OF ATTRIBUTES IF EXISTS
 
+    //parsing the object id
+    xmlChar *id = xmlGetProp(node, (const xmlChar *) ATTR_ID);
+
+    if (id) {
+        MyInterObj *interObj = g_malloc(sizeof(MyInterObj));
+        interObj->id = g_strdup((const gchar *) id);
+        interObj->obj = widget;
+        inteface->list = g_list_append(inteface->list, interObj);
+
+        g_free(id);
+    }
+
+    g_free(typeName);
     return widget;
 }
 
-void macro_ApplyObjProp(GObject *object, xmlNode *node) {
-    GValue value = G_VALUE_INIT;
+void macro_ApplyObjProp(GObject *object,const gchar *property,const gchar *content) {
 
-    //get property name from xml
-    const gchar *property = (gchar *) xmlGetProp(node, (const xmlChar *) ATTR_NAME);
-    //get property value
-    const gchar *content = (gchar *) xmlNodeGetContent(node);
+    GValue value = G_VALUE_INIT;
     //get property default value from object
     g_object_get_property(object, property, &value);
     //translate xml value from string to correct value
@@ -126,56 +139,47 @@ void macro_ApplyObjProp(GObject *object, xmlNode *node) {
 }
 
 void macro_ApplyObjChildProp(GObject *object, GObject *child, xmlNode *node) {
-
-
     //get property name from xml
     const gchar *property = (gchar *) xmlGetProp(node, (const xmlChar *) ATTR_NAME);
     //get property value
     const gchar *content = (gchar *) xmlNodeGetContent(node);
-
+    //init value
     GValue value = G_VALUE_INIT;
     GParamSpec *pspec;
-    pspec = gtk_container_class_find_child_property (G_OBJECT_GET_CLASS (object),
-                                                     property);
-
-
-//    gtk_container_class_install_child_property(GTK_CONTAINER_GET_CLASS(object), pspec->param_id, pspec);
-//    g_value_init (&value, pspec->value_type);
-
-    g_value_set_gtype(&value, pspec->value_type);
-
+    //get property from object
+    pspec = gtk_container_class_find_child_property(G_OBJECT_GET_CLASS (object), property);
+    //init value type
+    g_value_init(&value, pspec->value_type);
     //get property default value from object
-//    gtk_container_child_get_property(GTK_CONTAINER(object), GTK_WIDGET(child),property,&value);
-
-    g_print("\nchild property %s, content %s, type %s, default %s, new\n", property, content, g_type_name(pspec->value_type), g_value_get_string(&value));
+    gtk_container_child_get_property(GTK_CONTAINER(object), GTK_WIDGET(child), property, &value);
     //translate xml value from string to correct value
     macro_valueFromStringType(pspec->value_type, content, &value);
-
-
-    g_print(" %s ", g_value_get_string(&value));
-
     //set value to the object
-    g_object_set_property(child,property,&value);
+    gtk_container_child_set_property(GTK_CONTAINER(object), GTK_WIDGET(child), property, &value);
+
 }
+
 
 void macro_applyChildProps(GObject *object, GObject *child, xmlNode *node) {
     xmlNode *curNode;
-    for (curNode = node->children; curNode; curNode = curNode->next) {
-        if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_PROPERTY)) {
+    for (curNode = node->children; curNode; curNode = curNode->next)
+        if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_PROPERTY))
             macro_ApplyObjChildProp(object, child, curNode);
-        }
-    }
 }
 
-void macro_addChild(GObject *object, xmlNode *node) {
+void macro_addChild(MyInterface *inteface, GObject *object, xmlNode *node) {
     xmlNode *curNode;
     GObject *child;
     for (curNode = node->children; curNode; curNode = curNode->next) {
         //looking for child
         if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_OBJECT)) {
-            child = (GObject *) macro_TransWidget(curNode);
-            gtk_container_add(GTK_CONTAINER(object), GTK_WIDGET(child));
-
+            child = (GObject *) macro_TransWidget(inteface, curNode);
+            if (!xmlStrcasecmp(
+                    xmlGetProp(node, (const xmlChar *) ATTR_TYPE),
+                    (const xmlChar *) ATTR_TYPE_SUBMENU))
+                gtk_menu_item_set_submenu(GTK_MENU_ITEM(object), GTK_WIDGET(child));
+            else
+                gtk_container_add(GTK_CONTAINER(object), GTK_WIDGET(child));
         }
         //looking for child properties
         if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_PACKING) && child) {
@@ -185,120 +189,113 @@ void macro_addChild(GObject *object, xmlNode *node) {
     }
 }
 
-    void macro_parseChildrenTags(GObject *object, xmlNode *node) {
-        g_assert(object != NULL);
+void macro_addComboBoxTextItems(GObject *object, xmlNode *node) {
+    xmlNode *curNode;
+    for (curNode = node->children; curNode; curNode = curNode->next) {
+        //get property name from xml
+        const gchar *id = (gchar *) xmlGetProp(curNode, (const xmlChar *) ATTR_ID);
+        //get property value
+        const gchar *content = (gchar *) xmlNodeGetContent(curNode);
+
+        if (id)
+            gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(object), id, content);
+        else
+            gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(object), content);
+    }
+}
+
+void macro_parseChildrenTags(MyInterface *inteface, GObject *object, xmlNode *node) {
+    g_assert(object != NULL);
 
 
-        xmlNode *curNode = node->children;
-        while (curNode) {
-            //TODO :: COMPLETE CODE HERE
-            // handle all tags
+    xmlNode *curNode = node->children;
+    while (curNode) {
+        //TODO :: COMPLETE CODE HERE
+        // handle all tags
 
-            if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_PROPERTY))
-                macro_ApplyObjProp(object, curNode);
-            else if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_CHILD))
-                macro_addChild(object, curNode);
 
-            curNode = curNode->next;
+
+        if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_PROPERTY)) {
+            //get property name from xml
+            const gchar *property = (gchar *) xmlGetProp(curNode, (const xmlChar *) ATTR_NAME);
+            //get property value
+            const gchar *content = (gchar *) xmlNodeGetContent(curNode);
+
+            //si l'attribut est group du radio button
+            if (GTK_IS_RADIO_BUTTON(object) && !strcmpi(property, ATTR_PROPERTY_GROUP)) {
+                GObject *group = macro_findWidget(inteface, content);
+                if (!group)
+                    g_printerr("\nGroup not found %s\n", content);
+                else
+                    gtk_radio_button_join_group(GTK_RADIO_BUTTON(object),
+                                                GTK_RADIO_BUTTON(group));
+            }
+            else
+                macro_ApplyObjProp(object, property, content);
         }
+        else if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_CHILD))
+            macro_addChild(inteface, object, curNode);
+        else if (GTK_IS_COMBO_BOX_TEXT(object) && !xmlStrcasecmp(curNode->name, (xmlChar *) TAG_ITEMS))
+            macro_addComboBoxTextItems(object, curNode);
 
+        curNode = curNode->next;
     }
 
+}
 
-    GtkWidget *macro_TransWidget(xmlNode *node) {
-        xmlNode *curNode;
-        curNode = node;
-        GObject *widget = NULL;
 
-        //NULL NODE
-        if (!curNode) {
-            fprintf(stderr, "NULL NODE\n");
-            exit(-1);
-        }
+GObject *macro_TransWidget(MyInterface *inteface, xmlNode *node) {
+    xmlNode *curNode;
+    curNode = node;
+    GObject *widget = NULL;
 
-        //ignoring none object tags
-        while (curNode && xmlStrcasecmp(curNode->name, (const xmlChar *) TAG_OBJECT)) {
-            curNode = curNode->next;
-        }
-        //NO OBJECT NODE FOUNT
+    //NULL NODE
+    if (!curNode) {
+        fprintf(stderr, "NULL NODE\n");
+        return ((GObject*)NULL);
+    }
+
+    //ignoring none object tags
+    while (xmlStrcasecmp(curNode->name, (const xmlChar *) TAG_OBJECT)) {
+        curNode = curNode->next;
         if (!curNode) {
             fprintf(stderr, "NO OBJECT TAG FOUND\n");
-            exit(-1);
+            return ((GObject *) NULL);
         }
-
-        widget = macro_TransObjAttrs(curNode);
-
-        macro_parseChildrenTags(widget, curNode);
-
-
-        return GTK_WIDGET(widget);
     }
 
 
-    GtkWidget *macro_getWindow(gchar *filename) {
-        xmlNode *root;
-        root = macro_getRootElem(filename);
+    widget = macro_TransObjAttrs(inteface, curNode);
+
+    macro_parseChildrenTags(inteface, widget, curNode);
+
+    return widget;
+}
 
 
 
-        /**
-         * BUILD Window from xml
-         */
-        GtkWidget *window;
-        window = macro_TransWidget(root->children);
 
+MyInterface *macro_getWidgets(gchar *filename) {
+    xmlNode *root;
+    root = macro_getRootElem(filename);
+    xmlNode *curNode = root->children;
+    MyInterface *inteface = g_malloc(sizeof(MyInterface));
+    inteface->list = NULL;
 
-        macro_cleanupXML(root->doc);
-        return window;
+    /**
+     * BUILD Window from xml
+     */
+
+    while (curNode) {
+        if (xmlStrcasecmp(curNode->name, (const xmlChar *) TAG_OBJECT))
+            macro_TransWidget(inteface, curNode);
+        curNode = curNode->next;
     }
 
 
-
-
-/**
- * Simple example to parse a file called "file.xml",
- * walk down the DOM, and print the name of the
- * xml elements nodes.
- */
-//int
-//main(int argc, char **argv)
-//{
-//    xmlDoc *doc = NULL;
-//    xmlNode *root_element = NULL;
-//
-//    gchar *filename = "assets/main project.glade";
-//
-//
-//
-//    /*parse the file and get the DOM */
-//    doc = xmlReadFile(filename, NULL, 0);
-//
-//    if (doc == NULL) {
-//        printf("error: could not parse file %s\n", filename);
-//    }
-//
-//    /*Get the root element node */
-//    root_element = xmlDocGetRootElement(doc);
-//
-//
-//
-//    //TODO :: Traitement HERE
-//    print_element_names(root_element);
-//
-//
-//
-//
-//    /*free the document */
-//    xmlFreeDoc(doc);
-//
-//    /*
-//     *Free the global variables that may
-//     *have been allocated by the parser.
-//     */
-//    xmlCleanupParser();
-//
-//    return 0;
-//}
+    macro_cleanupXML(root->doc);
+    return inteface;
+}
 
 
 #endif //PARSEGTKXML_PARSERS_H

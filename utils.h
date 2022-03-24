@@ -6,6 +6,16 @@
 #define PARSEGTKXML_UTILS_H
 #include <gtk/gtk.h>
 
+
+typedef struct _MyInterfaceObject {
+    gchar *id;
+    GObject *obj;
+} MyInterObj;
+
+typedef struct {
+    GList *list;
+} MyInterface;
+
 gboolean
 macro_trans_boolean_from_string (const gchar  *string,
                                   gboolean     *value)
@@ -231,6 +241,23 @@ macro_RealGetTypeFromName (const gchar *type_name)
 GType macro_getTypeFromName(const gchar *type_name)
 {
     return macro_RealGetTypeFromName(type_name);
+}
+
+gint compObjectsIDs(gpointer obj, gpointer id)
+{
+    const gchar  *b = id;
+    MyInterObj *a = obj;
+
+    /* Compared by title */
+    return g_ascii_strcasecmp(a->id, b);
+}
+
+GObject *macro_findWidget(MyInterface *inteface, const gchar *id) {
+    GtkWidget *widget;
+
+    GList *elem = g_list_find_custom(inteface->list, id, (GCompareFunc)compObjectsIDs);
+
+    return elem?((MyInterObj*)elem->data)->obj:NULL;
 }
 
 
