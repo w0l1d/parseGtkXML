@@ -208,21 +208,7 @@ type_name_mangle (const gchar *name)
     return g_string_free (symbol_name, FALSE);
 }
 
-static GType
-macro_resolveTypeLazily (const gchar *name)
-{
-    static GModule *module = NULL;
-    GTypeGetFunc func;
-    gchar *symbol;
-    GType gtype = G_TYPE_INVALID;
-//    if (!module)
-//        module = g_module_open (NULL, 0);
-//    symbol = type_name_mangle (name);
-//    if (g_module_symbol (module, symbol, (gpointer)&func))
-//        gtype = func ();
-//    g_free (symbol);
-    return gtype;
-}
+
 
 static GType
 macro_RealGetTypeFromName (const gchar *type_name)
@@ -231,9 +217,7 @@ macro_RealGetTypeFromName (const gchar *type_name)
     gtype = g_type_from_name (type_name);
     if (gtype != G_TYPE_INVALID)
         return gtype;
-//    gtype = macro_resolveTypeLazily (type_name);
-//    if (gtype != G_TYPE_INVALID)
-//        return gtype;
+
     gtk_test_register_all_types ();
     return g_type_from_name (type_name);
 }
