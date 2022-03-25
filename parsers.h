@@ -20,6 +20,7 @@
 #define ATTR_TYPE "type"
 #define ATTR_TYPE_SUBMENU "submenu"
 #define ATTR_PROPERTY_GROUP "group"
+#define ATTR_PROPERTY_IMAGE "image"
 
 
 #define NODE_IS(node, tag) (!xmlStrcasecmp((node), (xmlChar *)(tag)))
@@ -221,14 +222,29 @@ void macro_parseChildrenTags(MyInterface *inteface, GObject *object, xmlNode *no
             //get property value
             const gchar *content = (gchar *) xmlNodeGetContent(curNode);
 
-            //si l'attribut est group du radio button
-            if (GTK_IS_RADIO_BUTTON(object) && !strcmpi(property, ATTR_PROPERTY_GROUP)) {
+            //si l'attribut est group du radio button ou radio menu item
+            if (!strcmpi(property, ATTR_PROPERTY_GROUP)) {
                 GObject *group = macro_findWidget(inteface, content);
                 if (!group)
-                    g_printerr("\nGroup not found %s\n", content);
-                else
+                    g_printerr("\nGroup not found %s.\n", content);
+                else if (GTK_IS_RADIO_BUTTON(object))
                     gtk_radio_button_join_group(GTK_RADIO_BUTTON(object),
                                                 GTK_RADIO_BUTTON(group));
+                else if (GTK_IS_RADIO_MENU_ITEM(object))
+                    gtk_radio_menu_item_join_group(GTK_RADIO_MENU_ITEM(object),
+                                                GTK_RADIO_MENU_ITEM(group));
+
+            }
+            //si l'attribut est image
+            else if (!strcmpi(property, ATTR_PROPERTY_IMAGE)) {
+                GObject *image = macro_findWidget(inteface, content);
+                if (!image)
+                    g_printerr("\nImage not found %s.\n", content);
+                else if (GTK_IS_IMAGE_MENU_ITEM(object))
+                    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(object), image);
+                else if (GTK_IS_BUTTON(object))
+                    gtk_button_set_image(GTK_BUTTON(object), GTK_WIDGET(image));
+
             }
             else
                 macro_ApplyObjProp(object, property, content);
