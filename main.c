@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "parsers.h"
+#include "macros_supplimentaires.h"
 
 GtkWidget *getMenuExample() {
     GtkWidget *item_menu;
@@ -29,33 +30,41 @@ activate(GtkApplication *app,
     MyInterface *myInterface = macro_getWidgets("simplest interface.glade");
 
     GtkWidget *xmlWindow = GTK_WIDGET(macro_findWidget(myInterface, "window"));
+    GtkWidget *xmlMenu = GTK_WIDGET(macro_findWidget(myInterface, "test555"));
+
+    if (!xmlMenu)
+        g_printerr("menu is not found");
+    else
+        macro_transMenuHoriz(GTK_MENU(xmlMenu));
+
+    //gtk_menu_attach(GTK_MENU(xmlMenu), gtk_menu_item_new_with_label("test-item"), 2, 3, 0, 1);
+
     gtk_application_add_window(app, GTK_WINDOW(xmlWindow));
 
 
     window = gtk_application_window_new(app);
 
-    label = gtk_label_new("My Menu");
-
-    menuBtn = gtk_menu_button_new();
-    gtk_menu_button_set_direction(GTK_MENU_BUTTON(menuBtn), GTK_ARROW_RIGHT);
-    gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuBtn), getMenuExample());
-
-    box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_box_pack_start(GTK_BOX(box), label, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(box), menuBtn, TRUE, TRUE, 0);
 
 
-    button = gtk_flow_box_new();
 
-    gtk_container_add(GTK_CONTAINER (button), box);
+    box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    GtkWidget  *btn = gtk_button_new_with_label("Test button");
+
+    g_object_set_data(btn, "key", "hello world");
+    g_object_set_data(box, "key", "hello world 222");
+
+    gtk_container_add(GTK_CONTAINER (box), btn);
+
+    gtk_button_set_relief(GTK_BUTTON(btn), GTK_RELIEF_HALF);
 
 
 
 
-    gtk_container_add(GTK_CONTAINER (window), button);
+    gtk_container_add(GTK_CONTAINER (window), box);
     gtk_widget_show_all(window);
     gtk_widget_show_all(xmlWindow);
 
+    macro_quickMessageDialog(GTK_WINDOW(xmlWindow), "My custom dialog", "hello can you accept ?", TRUE);
 }
 
 int
@@ -65,9 +74,11 @@ main(int argc,
     int status;
 
     app = gtk_application_new("org.gtk.example", G_APPLICATION_FLAGS_NONE);
-    g_signal_connect (app, "activate", G_CALLBACK(activate), NULL);
+    g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
     status = g_application_run(G_APPLICATION (app), argc, argv);
+
     g_object_unref(app);
+
 
 
     return status;

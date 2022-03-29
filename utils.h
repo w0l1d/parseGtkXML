@@ -237,12 +237,30 @@ gint compObjectsIDs(gpointer obj, gpointer id)
 }
 
 GObject *macro_findWidget(MyInterface *inteface, const gchar *id) {
-    GtkWidget *widget;
 
     GList *elem = g_list_find_custom(inteface->list, id, (GCompareFunc)compObjectsIDs);
 
     return elem?((MyInterObj*)elem->data)->obj:NULL;
 }
 
+
+GtkWidget *macro_transMenuHoriz(GtkMenu *menu) {
+    GList *items = gtk_container_get_children(GTK_CONTAINER(menu));
+
+    GtkWidget *item;
+
+
+    guint i = 0;
+    while (items) {
+        item = items->data;
+        g_object_ref(item);
+        gtk_container_remove(GTK_CONTAINER(menu), item);
+        gtk_menu_attach(menu, item, i, i+1, 0, 1);
+        g_object_unref(item);
+        i++;
+        items = items->next;
+    }
+    return GTK_WIDGET(menu);
+}
 
 #endif //PARSEGTKXML_UTILS_H

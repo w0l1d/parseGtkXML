@@ -21,6 +21,7 @@
 #define ATTR_TYPE_SUBMENU "submenu"
 #define ATTR_PROPERTY_GROUP "group"
 #define ATTR_PROPERTY_IMAGE "image"
+#define ATTR_PROPERTY_MODAL "modal"
 
 
 #define NODE_IS(node, tag) (!xmlStrcasecmp((node), (xmlChar *)(tag)))
@@ -69,6 +70,7 @@ xmlNode *macro_getRootElem(gchar *filename) {
 
     if (doc == NULL) {
         printf("error: could not parse file %s\n", filename);
+        exit(-1);
     }
 
     /*Get the root element node */
@@ -213,9 +215,7 @@ void macro_parseChildrenTags(MyInterface *inteface, GObject *object, xmlNode *no
     while (curNode) {
         //TODO :: COMPLETE CODE HERE
         // handle all tags
-
-
-
+        /// Parse Property TAG
         if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_PROPERTY)) {
             //get property name from xml
             const gchar *property = (gchar *) xmlGetProp(curNode, (const xmlChar *) ATTR_NAME);
@@ -233,7 +233,6 @@ void macro_parseChildrenTags(MyInterface *inteface, GObject *object, xmlNode *no
                 else if (GTK_IS_RADIO_MENU_ITEM(object))
                     gtk_radio_menu_item_join_group(GTK_RADIO_MENU_ITEM(object),
                                                 GTK_RADIO_MENU_ITEM(group));
-
             }
             //si l'attribut est image
             else if (!strcmpi(property, ATTR_PROPERTY_IMAGE)) {
@@ -244,13 +243,14 @@ void macro_parseChildrenTags(MyInterface *inteface, GObject *object, xmlNode *no
                     gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(object), image);
                 else if (GTK_IS_BUTTON(object))
                     gtk_button_set_image(GTK_BUTTON(object), GTK_WIDGET(image));
-
             }
             else
                 macro_ApplyObjProp(object, property, content);
         }
+        /// Parse Child TAG
         else if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_CHILD))
             macro_addChild(inteface, object, curNode);
+        /// Parse Items TAG
         else if (GTK_IS_COMBO_BOX_TEXT(object) && !xmlStrcasecmp(curNode->name, (xmlChar *) TAG_ITEMS))
             macro_addComboBoxTextItems(object, curNode);
 
