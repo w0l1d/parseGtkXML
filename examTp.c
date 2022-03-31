@@ -38,10 +38,12 @@ void button_clicked(GtkWidget *widget, gpointer data) {
 g_print("clicked\n");
 }
 void button_quit(GtkWidget *widget, gpointer data) {
-GtkWidget  *win = gtk_widget_get_parent(widget);
+GtkWidget  *fixed = gtk_widget_get_parent(widget);
+GtkWidget  *view = gtk_widget_get_parent(fixed);
+GtkWidget  *scroll = gtk_widget_get_parent(view);
+GtkWidget  *window = gtk_widget_get_parent(scroll);
 
-g_print("clicked\n");
-      gtk_window_close(win);
+      gtk_window_close(window);
 
 
 }
