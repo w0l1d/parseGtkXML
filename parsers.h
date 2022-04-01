@@ -21,7 +21,7 @@
 #define ATTR_TYPE_SUBMENU "submenu"
 #define ATTR_PROPERTY_GROUP "group"
 #define ATTR_PROPERTY_IMAGE "image"
-#define ATTR_PROPERTY_MODAL "modal"
+#define ATTR_PROPERTY_MODEL "modal"
 
 
 #define NODE_IS(node, tag) (!xmlStrcasecmp((node), (xmlChar *)(tag)))
@@ -242,9 +242,6 @@ void macro_addChild(MyInterface *interface, GObject *object, xmlNode *node) {
 void macro_addComboBoxTextItems(GObject *object, xmlNode *node) {
     xmlNode *curNode;
 
-    g_print("\n\n***************************");
-    g_print("\nstart combo items : \n");
-
     for (curNode = node->children; curNode; curNode = curNode->next) {
         if (curNode->type !=XML_ELEMENT_NODE)
             continue;
@@ -252,15 +249,12 @@ void macro_addComboBoxTextItems(GObject *object, xmlNode *node) {
         const gchar *id = (gchar *) xmlGetProp(curNode, (const xmlChar *) ATTR_ID);
         //get property value
         const gchar *content = (gchar *) xmlNodeGetContent(curNode);
-        g_print("item id = '%s', content = '%s'.\n", id, content);
 
         if (id)
             gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(object), id, content);
         else
             gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(object), content);
     }
-    g_print("\nend combo bos items\n");
-    g_print("**************************\n");
 }
 
 
@@ -306,6 +300,13 @@ void macro_parseChildrenTags(MyInterface *inteface, GObject *object, xmlNode *no
                     gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(object), image);
                 else if (GTK_IS_BUTTON(object))
                     gtk_button_set_image(GTK_BUTTON(object), GTK_WIDGET(image));
+            }
+            else if (GTK_IS_COMBO_BOX(object) && !strcmpi(property, ATTR_PROPERTY_MODEL)) {
+                GObject *model = macro_findWidget(inteface, content);
+                if (!model)
+                    g_printerr("\nModel not found %s.\n", content);
+                else
+                    gtk_combo_box_set_model(GTK_COMBO_BOX(object), GTK_TREE_MODEL(model));
             }
             else
                 macro_ApplyObjProp(object, property, content);
