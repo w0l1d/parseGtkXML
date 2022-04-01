@@ -7,15 +7,30 @@
 #include <gtk/gtk.h>
 
 
+/*****
+ * structure of an object and it id
+ */
 typedef struct _MyInterfaceObject {
-    gchar *id;
-    GObject *obj;
+    gchar *id; /// object id
+    GObject *obj; /// direct pointer to the gobject
 } MyInterObj;
 
+/*****
+ * this structure contains only one attribute
+ * but left like that in case we had to add new ones
+ * in future versions
+ */
 typedef struct {
-    GList *list;
+    GList *list; /// list of objects
 } MyInterface;
 
+
+/***
+ * return the value of a given string as boolean
+ * @param string boolean as string
+ * @param value returned value
+ * @return if the operation is successful or not
+ */
 gboolean
 macro_trans_boolean_from_string (const gchar  *string,
                                   gboolean     *value)
@@ -54,6 +69,14 @@ macro_trans_boolean_from_string (const gchar  *string,
     return FALSE;
 }
 
+
+/******
+ * return the value of a given string as enumaration
+ * @param type the type of te gvalue
+ * @param string property name
+ * @param enum_value translated value
+ * @return if the operation fails or succeeds
+ */
 gboolean macro_enumFromString (GType type,
                       const gchar  *string,
                       gint *enum_value) {
@@ -62,16 +85,23 @@ gboolean macro_enumFromString (GType type,
     gchar *endptr;
     gint value;
     gboolean ret;
+    /// if the given type is enum
     g_return_val_if_fail (G_TYPE_IS_ENUM (type), FALSE);
+    /// if the string is not empty
     g_return_val_if_fail (string != NULL, FALSE);
     ret = TRUE;
     endptr = NULL;
+    /// gtk global error contant function
     errno = 0;
+    // Converts a string to a #guint64 value
     value = (gint)g_ascii_strtoull (string, &endptr, 0);
-    if (errno == 0 && endptr != string) /* parsed a number */
+
+    /// parsed a number
+    if (errno == 0 && endptr != string)
         *enum_value = value;
     else
     {
+
         eclass = g_type_class_ref (type);
         ev = g_enum_get_value_by_name (eclass, string);
         if (!ev)
@@ -87,6 +117,13 @@ gboolean macro_enumFromString (GType type,
     return ret;
 }
 
+
+/******
+ * traslate a property as string to a gvalue
+ * @param type the type of the property
+ * @param strValue it string value
+ * @param value returned transformed value (initially default value)
+ */
 void macro_valueFromStringType(GType         type,
                                const gchar  *strValue,
                                GValue       *value) {
@@ -97,6 +134,7 @@ void macro_valueFromStringType(GType         type,
 
 
 
+    /// trasform by type
     switch (G_TYPE_FUNDAMENTAL(type)) {
         case G_TYPE_CHAR:
             g_value_set_schar (value, strValue[0]);
@@ -184,32 +222,15 @@ void macro_valueFromStringType(GType         type,
 
 
 
-//get GType from name
-
-typedef GType (*GTypeGetFunc) (void);
-
-static gchar *
-type_name_mangle (const gchar *name)
-{
-    GString *symbol_name = g_string_new ("");
-    gint i;
-    for (i = 0; name[i] != '\0'; i++)
-    {
-        /* skip if uppercase, first or previous is uppercase */
-        if ((name[i] == g_ascii_toupper (name[i]) &&
-             i > 0 && name[i-1] != g_ascii_toupper (name[i-1])) ||
-            (i > 2 && name[i]   == g_ascii_toupper (name[i]) &&
-             name[i-1] == g_ascii_toupper (name[i-1]) &&
-             name[i-2] == g_ascii_toupper (name[i-2])))
-            g_string_append_c (symbol_name, '_');
-        g_string_append_c (symbol_name, g_ascii_tolower (name[i]));
-    }
-    g_string_append (symbol_name, "_get_type");
-    return g_string_free (symbol_name, FALSE);
-}
 
 
 
+
+/******
+ * get the property type from it type name
+ * @param type_name type name
+ * @return the type corresponding to the name
+ */
 static GType
 macro_RealGetTypeFromName (const gchar *type_name)
 {
@@ -218,24 +239,45 @@ macro_RealGetTypeFromName (const gchar *type_name)
     if (gtype != G_TYPE_INVALID)
         return gtype;
 
+    /// Force registration of all core Gtk+ and Gdk object types.
+    /// This allows to refer to any of those object types
     gtk_test_register_all_types ();
     return g_type_from_name (type_name);
 }
 
+/***
+ * hanlde the call to macro_RealGetTypeFromName static method
+ * @param type_name the type name
+ * @return type by the name
+ */
 GType macro_getTypeFromName(const gchar *type_name)
 {
     return macro_RealGetTypeFromName(type_name);
 }
 
+/****
+ * used for the curtom search on glist of objects
+ * @param obj current object in filter
+ * @param id id used to compare with
+ * @return the comparison result
+ * 0 if equal
+ */
 gint compObjectsIDs(gpointer obj, gpointer id)
 {
     const gchar  *b = id;
     MyInterObj *a = obj;
 
-    /* Compared by title */
+    /// Compared by id
     return g_ascii_strcasecmp(a->id, b);
 }
 
+
+/*******
+ * search for an object by it id
+ * @param inteface list of objects
+ * @param id id to look for
+ * @return found object
+ */
 GObject *macro_findWidget(MyInterface *inteface, const gchar *id) {
 
     GList *elem = g_list_find_custom(inteface->list, id, (GCompareFunc)compObjectsIDs);
@@ -243,8 +285,11 @@ GObject *macro_findWidget(MyInterface *inteface, const gchar *id) {
     return elem?((MyInterObj*)elem->data)->obj:NULL;
 }
 
-
-GtkWidget *macro_transMenuHoriz(GtkMenu *menu) {
+/****************
+ * transforms a vertical GtkMenu into horizontal
+ * @param menu used GtkMenu
+ */
+void macro_transMenuHoriz(GtkMenu *menu) {
     GList *items = gtk_container_get_children(GTK_CONTAINER(menu));
 
     GtkWidget *item;
@@ -260,7 +305,6 @@ GtkWidget *macro_transMenuHoriz(GtkMenu *menu) {
         i++;
         items = items->next;
     }
-    return GTK_WIDGET(menu);
 }
 
 #endif //PARSEGTKXML_UTILS_H

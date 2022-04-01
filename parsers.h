@@ -60,8 +60,13 @@ print_element_names(xmlNode *a_node) {
     }
 }
 
-xmlNode *macro_getRootElem(gchar *filename) {
 
+/******
+ * Read th file and get it root node
+ * @param filename file to parse
+ * @return root node
+ */
+xmlNode *macro_getRootElem(gchar *filename) {
     xmlDoc *doc = NULL;
     xmlNode *root_element = NULL;
 
@@ -79,6 +84,11 @@ xmlNode *macro_getRootElem(gchar *filename) {
     return root_element;
 }
 
+
+/***
+ * frees the pbjects used to parse the xml file
+ * @param doc xml document to free
+ */
 void macro_cleanupXML(xmlDoc *doc) {
     /*free the document */
     xmlFreeDoc(doc);
@@ -90,6 +100,14 @@ void macro_cleanupXML(xmlDoc *doc) {
     xmlCleanupParser();
 }
 
+
+/********
+ * creates the object using it class attribute
+ * and store it if it has an id attribute
+ * @param inteface custom structure to store parsed objects
+ * @param node node representing the object to parse
+ * @return created object
+ */
 GObject *macro_TransObjAttrs(MyInterface *inteface, xmlNode *node) {
     GObject *widget;
 
@@ -105,7 +123,6 @@ GObject *macro_TransObjAttrs(MyInterface *inteface, xmlNode *node) {
 
     printf("\n object name : %s\n", typeName);
     GType gType = macro_getTypeFromName((const gchar *) typeName);
-
 
     g_assert(gType != 0);
 
@@ -130,6 +147,12 @@ GObject *macro_TransObjAttrs(MyInterface *inteface, xmlNode *node) {
     return widget;
 }
 
+/***
+ * sets an object property
+ * @param object object to whom we will set the property
+ * @param property the property name
+ * @param content property value as string
+ */
 void macro_ApplyObjProp(GObject *object,const gchar *property,const gchar *content) {
 
     GValue value = G_VALUE_INIT;
@@ -141,6 +164,13 @@ void macro_ApplyObjProp(GObject *object,const gchar *property,const gchar *conte
     g_object_set_property(object, property, &value);
 }
 
+
+/***
+ * sets an object property in it parent container
+ * @param object container
+ * @param child one of it children
+ * @param node node representing the property(name and value)
+ */
 void macro_ApplyObjChildProp(GObject *object, GObject *child, xmlNode *node) {
     //get property name from xml
     const gchar *property = (gchar *) xmlGetProp(node, (const xmlChar *) ATTR_NAME);
@@ -149,7 +179,7 @@ void macro_ApplyObjChildProp(GObject *object, GObject *child, xmlNode *node) {
     //init value
     GValue value = G_VALUE_INIT;
     GParamSpec *pspec;
-    //get property from object
+    //get default property from object
     pspec = gtk_container_class_find_child_property(G_OBJECT_GET_CLASS (object), property);
     //init value type
     g_value_init(&value, pspec->value_type);
@@ -163,6 +193,12 @@ void macro_ApplyObjChildProp(GObject *object, GObject *child, xmlNode *node) {
 }
 
 
+/*********
+ * iterates on a container child properties and sets them one by one
+ * @param object container to whom we will set the property
+ * @param child
+ * @param node packing node containing the relation properties
+ */
 void macro_applyChildProps(GObject *object, GObject *child, xmlNode *node) {
     xmlNode *curNode;
     for (curNode = node->children; curNode; curNode = curNode->next)
@@ -170,13 +206,19 @@ void macro_applyChildProps(GObject *object, GObject *child, xmlNode *node) {
             macro_ApplyObjChildProp(object, child, curNode);
 }
 
-void macro_addChild(MyInterface *inteface, GObject *object, xmlNode *node) {
+/******
+ * creates and adds a child to a container
+ * @param interface used to store child if it has an id
+ * @param object container
+ * @param node childs node containing the container children
+ */
+void macro_addChild(MyInterface *interface, GObject *object, xmlNode *node) {
     xmlNode *curNode;
     GObject *child;
     for (curNode = node->children; curNode; curNode = curNode->next) {
         //looking for child
         if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_OBJECT)) {
-            child = (GObject *) macro_TransWidget(inteface, curNode);
+            child = (GObject *) macro_TransWidget(interface, curNode);
             if (!xmlStrcasecmp(
                     xmlGetProp(node, (const xmlChar *) ATTR_TYPE),
                     (const xmlChar *) ATTR_TYPE_SUBMENU))
@@ -192,6 +234,11 @@ void macro_addChild(MyInterface *inteface, GObject *object, xmlNode *node) {
     }
 }
 
+/***********
+ * adds combo box items
+ * @param object combobox
+ * @param node items tag that contains it items values
+ */
 void macro_addComboBoxTextItems(GObject *object, xmlNode *node) {
     xmlNode *curNode;
     for (curNode = node->children; curNode; curNode = curNode->next) {
@@ -207,14 +254,21 @@ void macro_addComboBoxTextItems(GObject *object, xmlNode *node) {
     }
 }
 
+
+/****************
+ * parses contained tags inside an object (property, childs, ...)
+ * NB: (children tags not only children objects)
+ * @param inteface contains created objects
+ * @param object parent object
+ * @param node parent node
+ */
 void macro_parseChildrenTags(MyInterface *inteface, GObject *object, xmlNode *node) {
     g_assert(object != NULL);
 
 
     xmlNode *curNode = node->children;
     while (curNode) {
-        //TODO :: COMPLETE CODE HERE
-        // handle all tags
+
         /// Parse Property TAG
         if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_PROPERTY)) {
             //get property name from xml
@@ -260,6 +314,12 @@ void macro_parseChildrenTags(MyInterface *inteface, GObject *object, xmlNode *no
 }
 
 
+/****************
+ * main function that usually gets a node after the root element
+ * @param inteface
+ * @param node object node
+ * @return created object
+ */
 GObject *macro_TransWidget(MyInterface *inteface, xmlNode *node) {
     xmlNode *curNode;
     curNode = node;
@@ -280,7 +340,6 @@ GObject *macro_TransWidget(MyInterface *inteface, xmlNode *node) {
         }
     }
 
-
     widget = macro_TransObjAttrs(inteface, curNode);
 
     macro_parseChildrenTags(inteface, widget, curNode);
@@ -290,13 +349,17 @@ GObject *macro_TransWidget(MyInterface *inteface, xmlNode *node) {
 
 
 
-
+/****************
+ * parses the all xml element
+ * @param filename xml file
+ * @return stored object (the ones with id attribute)
+ */
 MyInterface *macro_getWidgets(gchar *filename) {
     xmlNode *root;
     root = macro_getRootElem(filename);
     xmlNode *curNode = root->children;
-    MyInterface *inteface = g_malloc(sizeof(MyInterface));
-    inteface->list = NULL;
+    MyInterface *interface = g_malloc(sizeof(MyInterface));
+    interface->list = NULL;
 
     /**
      * BUILD Window from xml
@@ -304,13 +367,13 @@ MyInterface *macro_getWidgets(gchar *filename) {
 
     while (curNode) {
         if (xmlStrcasecmp(curNode->name, (const xmlChar *) TAG_OBJECT))
-            macro_TransWidget(inteface, curNode);
+            macro_TransWidget(interface, curNode);
         curNode = curNode->next;
     }
 
 
     macro_cleanupXML(root->doc);
-    return inteface;
+    return interface;
 }
 
 
