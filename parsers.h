@@ -241,17 +241,26 @@ void macro_addChild(MyInterface *interface, GObject *object, xmlNode *node) {
  */
 void macro_addComboBoxTextItems(GObject *object, xmlNode *node) {
     xmlNode *curNode;
+
+    g_print("\n\n***************************");
+    g_print("\nstart combo items : \n");
+
     for (curNode = node->children; curNode; curNode = curNode->next) {
+        if (curNode->type !=XML_ELEMENT_NODE)
+            continue;
         //get property name from xml
         const gchar *id = (gchar *) xmlGetProp(curNode, (const xmlChar *) ATTR_ID);
         //get property value
         const gchar *content = (gchar *) xmlNodeGetContent(curNode);
+        g_print("item id = '%s', content = '%s'.\n", id, content);
 
         if (id)
             gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(object), id, content);
         else
             gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(object), content);
     }
+    g_print("\nend combo bos items\n");
+    g_print("**************************\n");
 }
 
 
