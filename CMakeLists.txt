@@ -35,8 +35,9 @@ ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER} "-Wall")
 
 # Ajoute un éxecutable à partir du main.c
 add_executable(parseGtkXML
+        examTp.c
         #        puzzleMain.c
-        main.c
+#        main.c
         #        mainGlade.c
         #        "by walid/GTK_MACROS_AUTO.c"
         #[[testMain.c]])

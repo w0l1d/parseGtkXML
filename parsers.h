@@ -11,7 +11,9 @@
 #define TAG_OBJECT "object"
 #define TAG_PROPERTY "property"
 #define TAG_CHILD "child"
+#define TAG_STYLE "style"
 #define TAG_ITEMS "items"
+#define TAG_CLASS "class"
 #define TAG_PACKING "packing"
 
 #define ATTR_CLASS "class"
@@ -258,6 +260,26 @@ void macro_addComboBoxTextItems(GObject *object, xmlNode *node) {
 }
 
 
+void macro_addStyleClasses(GtkWidget *widget, xmlNode *styleNode) {
+
+
+    xmlNode *curNode;
+
+    for (curNode = styleNode->children; curNode; curNode = curNode->next) {
+        if (curNode->type !=XML_ELEMENT_NODE)
+            continue;
+
+        //get class name from xml attribute
+        const gchar *className = (gchar *) xmlGetProp(curNode, (const xmlChar *) ATTR_NAME);
+
+
+        g_printerr("\nclass name :  %s\n", className);
+        if (className) {
+            gtk_style_context_add_class(gtk_widget_get_style_context(GTK_WIDGET(widget)), className);
+        }
+    }
+}
+
 /****************
  * parses contained tags inside an object (property, childs, ...)
  * NB: (children tags not only children objects)
@@ -271,6 +293,10 @@ void macro_parseChildrenTags(MyInterface *inteface, GObject *object, xmlNode *no
 
     xmlNode *curNode = node->children;
     while (curNode) {
+
+        g_print("\ntag name : %s.\n", curNode->name);
+        if (curNode->type != XML_ELEMENT_NODE)
+            goto end_loop;
 
         /// Parse Property TAG
         if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_PROPERTY)) {
@@ -314,10 +340,14 @@ void macro_parseChildrenTags(MyInterface *inteface, GObject *object, xmlNode *no
         /// Parse Child TAG
         else if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_CHILD))
             macro_addChild(inteface, object, curNode);
+        /// Parse CSS Style Classes
+        else if (!xmlStrcasecmp(curNode->name, (xmlChar *) TAG_STYLE))
+            macro_addStyleClasses(GTK_WIDGET(object), curNode);
         /// Parse Items TAG
         else if (GTK_IS_COMBO_BOX_TEXT(object) && !xmlStrcasecmp(curNode->name, (xmlChar *) TAG_ITEMS))
             macro_addComboBoxTextItems(object, curNode);
 
+        end_loop:
         curNode = curNode->next;
     }
 

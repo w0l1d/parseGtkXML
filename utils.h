@@ -307,4 +307,19 @@ void macro_transMenuHoriz(GtkMenu *menu) {
     }
 }
 
+
+
+
+void macro_loadCSS(GtkWidget *window, const gchar *file) {
+    GFile *css_gFile = g_file_new_for_path(file);
+    GtkCssProvider *cssProvider = gtk_css_provider_new();
+
+    gtk_css_provider_load_from_file(cssProvider, css_gFile, 0);
+
+    gtk_style_context_add_provider_for_screen(gtk_widget_get_screen(window),
+                                              GTK_STYLE_PROVIDER(cssProvider),
+                                              GTK_STYLE_PROVIDER_PRIORITY_USER);
+}
+
+
 #endif //PARSEGTKXML_UTILS_H

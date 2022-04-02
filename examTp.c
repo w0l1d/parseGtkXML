@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "parsers.h"
+
 /*
 GtkWidget *getMenuExample() {
     GtkWidget *item_menu;
@@ -35,19 +36,19 @@ void macro_transMenuHoriz(GtkMenu *menu) {
 
 void button_clicked(GtkWidget *widget, gpointer data) {
 
-g_print("clicked\n");
+    g_print("clicked\n");
 }
+
 void button_quit(GtkWidget *widget, gpointer data) {
-GtkWidget  *fixed = gtk_widget_get_parent(widget);
-GtkWidget  *view = gtk_widget_get_parent(fixed);
-GtkWidget  *scroll = gtk_widget_get_parent(view);
-GtkWidget  *window = gtk_widget_get_parent(scroll);
+    GtkWidget *fixed = gtk_widget_get_parent(widget);
+    GtkWidget *view = gtk_widget_get_parent(fixed);
+    GtkWidget *scroll = gtk_widget_get_parent(view);
+    GtkWidget *window = gtk_widget_get_parent(scroll);
 
-      gtk_window_close(window);
+    gtk_window_close(GTK_WINDOW(window));
 
 
 }
-
 
 
 static void
@@ -55,15 +56,15 @@ activate(GtkApplication *app,
          gpointer user_data) {
 
 
-
-
     MyInterface *myInterface = macro_getWidgets("examTP.glade");
     GtkWidget *xmlWindow = GTK_WIDGET(macro_findWidget(myInterface, "mainWindow"));
     GtkWidget *xmlWindowSec = GTK_WIDGET(macro_findWidget(myInterface, "windowSec"));
-        gtk_application_add_window(app, GTK_WINDOW(xmlWindow));
 
+    gtk_application_add_window(app, GTK_WINDOW(xmlWindow));
 
-    gtk_application_add_window(app, GTK_WINDOW(xmlWindowSec));
+    macro_loadCSS(xmlWindow, "style.css");
+
+//    gtk_application_add_window(app, GTK_WINDOW(xmlWindowSec));
     GtkWidget *buttonOk = GTK_WIDGET(macro_findWidget(myInterface, "okbutton"));
     GtkWidget *buttonQt = GTK_WIDGET(macro_findWidget(myInterface, "quitterButton"));
     /*GtkWidget *menu = GTK_WIDGET(macro_findWidget(myInterface, "azerty"));
@@ -71,13 +72,10 @@ activate(GtkApplication *app,
 
 
 
-
-    g_signal_connect(G_OBJECT (buttonOk), "clicked", G_CALLBACK(button_clicked) ,NULL);
-    g_signal_connect(G_OBJECT (buttonQt), "clicked", G_CALLBACK(gtk_window_close) ,NULL);
+    g_signal_connect(G_OBJECT(buttonOk), "clicked", G_CALLBACK(button_clicked), NULL);
+    g_signal_connect(G_OBJECT(buttonQt), "clicked", G_CALLBACK(gtk_window_close), NULL);
     gtk_widget_show_all(xmlWindow);
     gtk_widget_show_all(xmlWindowSec);
-
-
 
 
 }
