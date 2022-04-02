@@ -1,0 +1,12 @@
+
+
+.border {
+    border-color: black;
+    border-width: 2px;
+    border-style: solid;
+}
+
+.gray-background {
+    background-color: rgba(0, 0, 0, 0.19);
+    color: white;
+}
