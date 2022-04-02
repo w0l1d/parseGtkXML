@@ -367,6 +367,8 @@ GObject *macro_TransWidget(MyInterface *inteface, xmlNode *node) {
 MyInterface *macro_getWidgets(gchar *filename) {
     xmlNode *root;
     root = macro_getRootElem(filename);
+
+
     xmlNode *curNode = root->children;
     MyInterface *interface = g_malloc(sizeof(MyInterface));
     interface->list = NULL;
