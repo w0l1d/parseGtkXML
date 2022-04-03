@@ -40,11 +40,11 @@ void button_clicked(GtkWidget *widget, gpointer data) {
 }
 
 void button_quit(GtkWidget *widget, gpointer data) {
-    GtkWidget *fixed = gtk_widget_get_parent(widget);
+   GtkWidget *fixed = gtk_widget_get_parent(widget);
     GtkWidget *view = gtk_widget_get_parent(fixed);
     GtkWidget *scroll = gtk_widget_get_parent(view);
-    GtkWidget *window = gtk_widget_get_parent(scroll);
-
+    GtkWidget *box = gtk_widget_get_parent(scroll);
+    GtkWidget *window = gtk_widget_get_parent(box);
     gtk_window_close(GTK_WINDOW(window));
 
 
@@ -73,7 +73,7 @@ activate(GtkApplication *app,
 
 
     g_signal_connect(G_OBJECT(buttonOk), "clicked", G_CALLBACK(button_clicked), NULL);
-    g_signal_connect(G_OBJECT(buttonQt), "clicked", G_CALLBACK(gtk_window_close), NULL);
+    g_signal_connect(G_OBJECT(buttonQt), "clicked", G_CALLBACK(button_quit), NULL);
     gtk_widget_show_all(xmlWindow);
     gtk_widget_show_all(xmlWindowSec);
 
