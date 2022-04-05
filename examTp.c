@@ -1,5 +1,8 @@
 #include <stdio.h>
+#include <string.h>
 #include "parsers.h"
+
+
 
 /*
 GtkWidget *getMenuExample() {
@@ -34,21 +37,39 @@ void macro_transMenuHoriz(GtkMenu *menu) {
 }
 */
 
+
+/*******************************************************************
+ * begin                      EVENTS
+ * *****************************************************************
+ */
 void button_clicked(GtkWidget *widget, gpointer data) {
 
     g_print("clicked\n");
 }
 
 void button_quit(GtkWidget *widget, gpointer data) {
-   GtkWidget *fixed = gtk_widget_get_parent(widget);
-    GtkWidget *view = gtk_widget_get_parent(fixed);
-    GtkWidget *scroll = gtk_widget_get_parent(view);
-    GtkWidget *box = gtk_widget_get_parent(scroll);
-    GtkWidget *window = gtk_widget_get_parent(box);
-    gtk_window_close(GTK_WINDOW(window));
-
-
+    gtk_window_close(GTK_WINDOW(gtk_widget_get_toplevel(widget)));
 }
+
+
+
+/*******************************************************************
+ * end                           EVENTS
+ * *****************************************************************
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 static void
@@ -61,12 +82,17 @@ activate(GtkApplication *app,
     GtkWidget *xmlWindowSec = GTK_WIDGET(macro_findWidget(myInterface, "windowSec"));
 
     gtk_application_add_window(app, GTK_WINDOW(xmlWindow));
+    //    gtk_application_add_window(app, GTK_WINDOW(xmlWindowSec));
 
+
+    /// Load css styling file
     macro_loadCSS(xmlWindow, "style.css");
 
-//    gtk_application_add_window(app, GTK_WINDOW(xmlWindowSec));
+    /// main window action buttons
     GtkWidget *buttonOk = GTK_WIDGET(macro_findWidget(myInterface, "okbutton"));
     GtkWidget *buttonQt = GTK_WIDGET(macro_findWidget(myInterface, "quitterButton"));
+
+
     /*GtkWidget *menu = GTK_WIDGET(macro_findWidget(myInterface, "azerty"));
     macro_transMenuHoriz(menu);*/
 
@@ -74,6 +100,7 @@ activate(GtkApplication *app,
 
     g_signal_connect(G_OBJECT(buttonOk), "clicked", G_CALLBACK(button_clicked), NULL);
     g_signal_connect(G_OBJECT(buttonQt), "clicked", G_CALLBACK(button_quit), NULL);
+
     gtk_widget_show_all(xmlWindow);
     gtk_widget_show_all(xmlWindowSec);
 
@@ -90,6 +117,7 @@ main(int argc,
     g_signal_connect (app, "activate", G_CALLBACK(activate), NULL);
     status = g_application_run(G_APPLICATION (app), argc, argv);
     g_object_unref(app);
+
 
 
     return status;
