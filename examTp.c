@@ -104,6 +104,12 @@ activate(GtkApplication *app,
     gtk_widget_show_all(xmlWindow);
     gtk_widget_show_all(xmlWindowSec);
 
+    for (long i = 1; i < 100000; i*=100) {
+        char string[10];
+        sprintf(string, "%d", i);
+        printf("%s\n", string);
+    }
+
 
 }
 
